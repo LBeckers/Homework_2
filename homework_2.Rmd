@@ -1,6 +1,6 @@
 ---
-title: "Session 4: Homework 2"
-author: "Leif Beckers"
+title: "Session 4: Homework 2 - Group 23"
+author: "Leif Beckers, Dung Tran, Salman Abdullah, Andjela Bozinovic, Xiwen Wang"
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -56,8 +56,6 @@ If we wanted to study climate change, we can find data on the *Combined Land-Sur
 
 To define temperature anomalies you need to have a reference, or base, period which NASA clearly states that it is the period between 1951-1980.
 
-Run the code below to load the file:
-
 ```{r weather_data, cache=TRUE}
 
 weather <- 
@@ -66,21 +64,6 @@ weather <-
            na = "***")
 
 ```
-
-Notice that, when using this function, we added two options: `skip` and `na`.
-
-1. The `skip=1` option is there as the real data table only starts in Row 2, so we need to skip one row. 
-1. `na = "***"` option informs R how missing observations in the spreadsheet are coded. When looking at the spreadsheet, you can see that missing data is coded as "***". It is best to specify this here, as otherwise some of the data is not recognized as numeric data.
-
-Once the data is loaded, notice that there is a object titled `weather` in the `Environment` panel. If you cannot see the panel (usually on the top-right), go to `Tools` > `Global Options` > `Pane Layout` and tick the checkbox next to `Environment`. Click on the `weather` object, and the dataframe will pop up on a seperate tab. Inspect the dataframe.
-
-For each month and year, the dataframe shows the deviation of temperature from the normal (expected). Further the dataframe is in wide format. 
-
-You have two objectives in this section:
-
-1. Select the year and the twelve month variables from the `weather` dataset. We do not need the others (J-D, D-N, DJF, etc.) for this assignment. Hint: use `select()` function.
-
-1. Convert the dataframe from wide to 'long' format. Hint: use `gather()` or `pivot_longer()` function. Name the new dataframe as `tidyweather`, name the variable containing the name of the month as `month`, and the temperature deviation values as `delta`.
 
 
 ```{r tidyweather}
@@ -91,11 +74,6 @@ tidyweather <- weather %>%
 
 ```
 
-Inspect your dataframe. It should have three variables now, one each for 
-
-1. year, 
-1. month, and 
-1. delta, or temperature deviation.
 
 ## Plotting Information
 
@@ -117,9 +95,8 @@ ggplot(tidyweather, aes(x=date, y = delta))+
   geom_smooth(color="red") +
   theme_bw() +
   labs (
-    title = "Weather Anomalies"
+    title = "Weather Anomalies drastically increasing over time"
   )
-
 
 ```
 
@@ -140,23 +117,6 @@ tidyweather %>%
     x = "",
     y = "Temperature Deviation"
   )
-
-# or
-
-# tidyweather %>% 
-#   ggplot(aes(x=date, y = delta)) +
-#   geom_point() +
-#   geom_smooth(color="red") +
-#   facet_wrap(facets = ~reorder(Month, date)) +
-#   theme_bw() +
-#   labs (
-#     title = "",
-#     subtitle = "Weather Anomalies by month",
-#     x = "",
-#     y = "Temperature Deviation"
-#   )
-
-
 
 
 ```
@@ -359,9 +319,10 @@ Can we estimate the *population* proportion of Snapchat or Instagram users in 20
 1. Using the CI formula for proportions, please construct 95% CIs for men and women who used either Snapchat or Instagram
 
 ```{r}
-gss_new <- gss %>%
+gss_sex <- gss %>%
   mutate(snap_insta = if_else(snapchat == "Yes", "Yes", if_else(instagrm == "Yes", "Yes", "No", "NA"), "NA")) %>%
   mutate(snap_insta =  na_if(snapchat, "NA"))
+
 
 Insta_snap <- gss_new %>%
   group_by(snap_insta) %>%
@@ -438,7 +399,7 @@ CI_twitter_by_edu
 
 
 ```
-
+The confidence intervals between the less-educated and more-educated groups do not overlap. In fact, the data suggest that we can be 95% confident that those with bachelor degrees or above are more likely to to use twitter than those without.
 
 ## Email usage
 
@@ -453,8 +414,22 @@ Can we estimate the *population* parameter on time spent on email weekly?
 gss_email <- gss %>% 
   mutate(email = as.numeric(emailhr) * 60 + as.numeric(emailmin)) 
 
+ggplot(gss_email, aes(x = email)) +
+  geom_density() +
+  labs(title = "Distribution of weekly minutes spent on emails",
+       subtitle = "Data is heavily right-skewed",
+       x = "Minutes per week",
+       y = "Distribution density") +
+  NULL
+
+
 skim(gss_email$email)
 
+```
+
+Here, the data is heavily right-skewed. This means that calculating the mean would incorporate all values in the data, including outliers whose values are far from the desired 'average'. As this can easily sway the data, using the median would be a better option. 
+
+```{r}
 set.seed(1234)
 
 boot_email <- gss_email %>%
@@ -472,16 +447,40 @@ boot_email <- gss_email %>%
   calculate(stat = "mean") 
 
 #Calculate bootstrap method confidence intervals
-email_ci <- boot_email %>%
+email_CI_95 <- boot_email %>%
   get_confidence_interval(level = 0.95, type = "percentile") %>% 
-  summarise(CI_low = paste(c(toString(lower_ci%/%60), "hours and", toString(lower_ci%%60), "minutes"), sep = " ")
-            #CI_high = upper_ci%/%60,upper_ci_mins=upper_ci%%60)
-  )
+  mutate(Lower_hour = floor(lower_ci/60),
+         Lower_minutes = round((lower_ci - 60 * Lower_hour), digits = 0),
+         Upper_hour = floor(upper_ci/60),
+         Upper_minutes = round((upper_ci - 60 * Upper_hour), digits = 0),
+         Lower = paste(Lower_hour, "hr", Lower_minutes, "mins"),
+         Upper = paste(Upper_hour, "hr" , Upper_minutes, "mins")) %>%
+  select(Lower, Upper)
 
-email_ci
+email_CI_95
+
+```
+We are 95% certain that i the mean weekly hours that Americans spent on email is between 6 hr 25 minutes - 7 hr 33 minutes.
+
+```{r}
+
+email_CI_99 <- boot_email %>% 
+  get_confidence_interval(level = 0.99, type = "percentile") %>%
+  mutate(Lower_hour = floor(lower_ci/60),
+         Lower_minutes = round((lower_ci - 60 * Lower_hour), digits = 0),
+         Upper_hour = floor(upper_ci/60),
+         Upper_minutes = round((upper_ci - 60 * Upper_hour), digits = 0),
+         Lower = paste(Lower_hour, "hr", Lower_minutes, "mins"),
+         Upper = paste(Upper_hour, "hr" , Upper_minutes, "mins")) %>%
+  select(Lower, Upper)
+
+
+email_CI_99
+
 
 ```
 
+As expected, the 99% confidence interval is wider than the 95% interval. The reason is that with a 99% confidence interval, we can be more confident that the actual mean is within the calculated interval, as compared to the 95% case. For this to be the case, the calculated range should be wider to incorporate additional values that would otherwise be excluded in the 95% confidence interval. 
 
 # Trump's Approval Margins
 
@@ -627,11 +626,180 @@ countries <-  wbstats::wb_cachelist$countries
 
 You have to join the 3 dataframes (life_expectancy, worldbank_data, and HIV) into one. You may need to tidy your data first and then perform [join operations](http://r4ds.had.co.nz/relational-data.html). Think about what type makes the most sense **and explain why you chose it**.
 
-1. What is the relationship between HIV prevalence and life expectancy? Generate a scatterplot with a smoothing line to report your results. You may find faceting useful
-1. What is the relationship between fertility rate and GDP per capita? Generate a scatterplot with a smoothing line to report your results. You may find facetting by region useful
-1. Which regions have the most observations with missing HIV data? Generate a bar chart (`geom_col()`), in descending order.
-1. How has mortality rate for under 5 changed by region? In each region, find the top 5 countries that have seen the greatest improvement, as well as those 5 countries where mortality rates have had the least improvement or even deterioration.
-1. Is there a relationship between primary school enrollment and fertility rate?
+```{r}
+hiv_cleaned <- hiv %>%
+  select(country, c(13:34)) %>%
+  pivot_longer(cols = 2:23, names_to = "Year", values_to = "HIV_rate_per_100") %>%
+  mutate(Year = as.numeric(Year))
+
+life_expectancy_cleaned <- life_expectancy %>%
+  select(country, c(192:213)) %>%
+  pivot_longer(cols = 2:23, names_to = "Year", values_to = "life_expectancy") %>%
+  mutate(Year = as.numeric(Year))
+  
+
+worldbank_cleaned <- worldbank_data %>%
+  filter(date >= 1990,
+         date <= 2011) %>%
+  rename(Year = date) %>%
+  select(c(3:8)) %>%
+  rename(gdpPerCap = NY.GDP.PCAP.KD,
+         school_enrollment_rate = SE.PRM.NENR,
+         mortality_rate_under5 = SH.DYN.MORT,
+         fertility_rate = SP.DYN.TFRT.IN)
+
+compiled_countries_data <- worldbank_cleaned %>%
+  left_join(hiv_cleaned, by = c("country", "Year")) %>%
+  left_join(life_expectancy_cleaned, by = c("country", "Year")) %>%
+  left_join(countries, by = "country") %>%
+  select(region, country, Year, gdpPerCap, school_enrollment_rate, mortality_rate_under5, fertility_rate, HIV_rate_per_100, life_expectancy)
+
+```
+
+- The hiv and life_expectancy data frames are reformatted using pivot_longer to match the format of the worldbank_data data frame. Its longer format is chosen because this allows multiple indicators to be recorded over time, whereas in the other two data frames only one indicator can be included. In addition, in order to allow for faceting the data by region where necessary, the region column in the countries data frame has also been merged to the new data frame.
+- Moreover, the time range of all data frames are also synchronised to ensure consistency. Whilst hiv, the data frame with the shortest time span, ranges from 1979 until 2011, in the earlier years hiv data do not exist for almost all countries in the list. In fact, data for most countries were only recorded from 1990. For this reason, data in all the data frames have been filtered to only include entries between 1990 and 2011.
+
+
+## What is the relationship between HIV prevalence and life expectancy? Generate a scatterplot with a smoothing line to report your results. You may find faceting useful
+
+```{r}
+hiv_life <- compiled_countries_data %>%
+  group_by(Year, region) %>%
+  drop_na(HIV_rate_per_100, life_expectancy) %>%
+  summarise(correlation = cor(HIV_rate_per_100, life_expectancy)) %>%
+  filter(region != c("North America", "Middle East & North Africa"))
+
+ggplot(hiv_life, aes(x = Year, y = correlation)) +
+  geom_point() +
+  facet_wrap(~region, scales = "free_x") +
+  geom_smooth() + 
+  theme_bw() +
+  labs(title = "Correlation of HIV Prevalence and Life Expectancy over Time",
+       subtitle = "North America, Middle East & North Africa excluded due to insufficient samples",
+       y = "Correlation Coefficient",
+       x = "Year")
+
+```
+
+In most region, there has been a negative correlation between HIV prevalence and life expectancy over time. This suggests that the higher the HIV rate, the lower the life expectancy. However, this seems to be the case only for less developed regions. In Europe & Central Asia where living conditions are significantly higher, the correlation coefficient between 1990-2000 is actually positive. Since this is counter-intuitive, the only reasonable explanation would be that as living conditions increase, HIV rate becomes much less relevant in deciding life expectancy. This also explains why Sub-Saharan Africa and South Asia, where economic development was high between 2005-2011, experienced significant decreases in the absolute value of correlation coefficients.
+
+## What is the relationship between fertility rate and GDP per capita? Generate a scatterplot with a smoothing line to report your results. You may find facetting by region useful
+```{r}
+compiled_countries_data %>%
+  filter(region != "North America") %>%
+  ggplot(aes(x = gdpPerCap, y = fertility_rate)) +
+  geom_point() +
+  facet_wrap(~region, scales = "free") +
+  theme_light() +
+  geom_smooth() +
+  labs(title = "Relationship between fertility rate and income varies by region",
+       subtitle = "North America excluded due to insufficient samples",
+       x = "GDP Per Capita",
+       y = "Fertility rate (Births per woman)")
+```
+At lower income levels, there is a consistent trend that the higher the average income, the lower the fertility rate. Conversely, at mid-income levels, birth rates actually increase with GDP per capita for most countries, although the degree by which it increases varies greatly by region. Finally, at higher income levels, correlation becomes negative again.
+
+## Which regions have the most observations with missing HIV data? Generate a bar chart (`geom_col()`), in descending order.
+
+```{r}
+HIV_missing_data <- compiled_countries_data %>%
+  group_by(region) %>%
+  summarise(missing_entries = sum(is.na(HIV_rate_per_100)))
+
+ggplot(HIV_missing_data, aes(x = missing_entries, y = reorder(region, missing_entries))) +
+  geom_col() +
+  theme_economist() +
+  labs(title = "Missing HIV data",
+       subtitle = "By count of missing observations",
+       y = "",
+       x = "Number of missing entries") +
+  NULL
+
+HIV_missing_data_2 <- compiled_countries_data %>%
+  group_by(region) %>%
+  summarise(missing_entries = sum(is.na(HIV_rate_per_100)),
+            count = n()) %>%
+  mutate(percentage_missing = missing_entries/count)
+
+ggplot(HIV_missing_data_2, aes(x = percentage_missing, y = reorder(region, percentage_missing))) +
+  geom_col() +
+  theme_economist() +
+  scale_x_continuous(labels = scales::percent) +
+  labs(title = "Missing HIV data",
+       subtitle = "By percentage of missing observations",
+       y = "",
+       x = "Percentage") +
+  NULL
+```
+East Asia & Pacific has the most observations with missing HIV data, by both count of missing entries and percentage of missing entries.
+
+
+## How has mortality rate for under 5 changed by region? In each region, find the top 5 countries that have seen the greatest improvement, as well as those 5 countries where mortality rates have had the least improvement or even deterioration.
+```{r}
+mortality_plot <- compiled_countries_data %>%
+  group_by(region, Year) %>%
+  summarise(mean_mortality_rate = mean(mortality_rate_under5, na.rm = TRUE))
+
+ggplot(mortality_plot, aes(x = Year, y = mean_mortality_rate)) +
+  geom_point() +
+  facet_wrap(~region, scales = "free_x") +
+  theme_bw() +
+  labs(title = "Mortality rate decreased over time across all regions",
+       subtitle = "most significantly in South Asia and Sub-Saharan Africa",
+       y = "Mortality rate of children under 5 (per 1,000 live births)",
+       x = "") +
+    NULL
+
+mortality_head <- compiled_countries_data %>%
+  filter(Year == c(1990, 2011)) %>%
+  select(region, country, Year, mortality_rate_under5) %>%
+  pivot_wider(names_from = Year, values_from = mortality_rate_under5) %>%
+  rename(start = 3,
+         end = 4) %>%
+  mutate(change = end - start) %>%
+  arrange(region, change, na.rm = TRUE) %>%
+  group_by(region) %>%
+  slice_head(n=5)
+
+mortality_tail <- compiled_countries_data %>%
+  filter(Year == c(1990, 2011)) %>%
+  select(region, country, Year, mortality_rate_under5) %>%
+  pivot_wider(names_from = Year, values_from = mortality_rate_under5) %>%
+  rename(start = 3,
+         end = 4) %>%
+  mutate(change = end - start) %>%
+  drop_na(change) %>%
+  arrange(region, change, na.rm = TRUE) %>%
+  group_by(region) %>%
+  slice_tail(n=5)
+
+mortality_top_and_bottom <- bind_rows(mortality_head, mortality_tail) %>%
+  arrange(region, change) %>%
+  select(region, country, change) %>%
+  rename(change_in_mortality_rate = change) %>%
+  drop_na()
+  
+mortality_top_and_bottom
+```
+Here, a negative change in mortality rate implies an improvement. Hence, the 5 countries that improved the most are those with the most negative changes in mortality rate, and vice versa for the least improved. The table compiled is for the 1990-2011 period.
+
+## Is there a relationship between primary school enrollment and fertility rate?
+```{r}
+
+compiled_countries_data %>%
+  filter(region != "North America") %>%
+  ggplot(aes(x = fertility_rate, y = school_enrollment_rate)) +
+  geom_point() +
+  facet_wrap(~region, scales = "free") +
+  expand_limits(y = c(0,100)) +
+  theme_light() +
+  geom_smooth() +
+  labs(title = "Varied relationships between fertility rate and primary school enrollment",
+       subtitle = "North America excluded due to insufficient samples",
+       x = "Fertility rate (Births per woman)",
+       y = "Primary School Enrollment (%)")
+```
+Whilst the relationship between fertility rate and primary school enrollment varies by region, on overall there seems to be a negative relationship between the 2 variables in less developed regions (Latin America & Caribbean, Middle East & North Africa, Sub-Saharan Africa, South Asia, and countries with really high birth rates in East Asia & Pacific). The correlation, however, fades in more developed countries (Europe & Central Asia, and most of East Asia & Pacific). As with the HIV prevalence - life expectancy case, the most plausible explanation is that as living conditions increase, fertility rates become much less relevant in deciding primary school enrollment.
 
 
 # Challenge 1: CDC COVID-19 Public Use Data
@@ -665,6 +833,81 @@ knitr::include_graphics(here::here("images", "covid_death_rate_icu.png"), error 
 
 
 Besides the graphs, make sure your code is easy to read and understand-- imagine if you revisit this six months from now. you should be able to follow what you were doing!
+
+```{r}
+
+covid_plot1_data <- covid_data %>%
+  mutate_if(is.character, list(~na_if(., "Unknown"))) %>%
+  mutate_if(is.character, list(~na_if(., "Missing"))) %>%
+  mutate(sex = na_if(sex, "Other")) %>%
+  group_by(age_group, sex, medcond_yn, death_yn) %>%
+  drop_na(age_group, sex, medcond_yn, death_yn) %>%
+  summarise(count = n()) %>%
+  ungroup() %>%
+  group_by(age_group, sex, medcond_yn) %>%
+  mutate(subgroup_total = sum(count)) %>%
+  ungroup() %>%
+  filter(death_yn == "Yes") %>%
+  mutate(death_percentage = round(count/subgroup_total, digits = 3),
+         medcond_yn = factor(medcond_yn, levels = c("Yes", "No"),
+                             labels = c("With comorbidities", "Without comorbidities")))
+
+new <- theme_set(theme_bw())
+theme_replace(plot.tag.position = c(0.95,0.01),
+        plot.tag = element_text(size = 7))
+
+covid_plot1 <- ggplot(covid_plot1_data, aes(x = death_percentage, y = reorder(age_group, age_group))) +
+  geom_col(fill = "#6666CC") +
+  facet_grid(medcond_yn ~ sex) +
+  coord_cartesian(xlim = c(0, 0.7), clip = "off") +
+  scale_x_continuous(labels = scales::percent) +
+  theme_set(new) +
+  labs(title = "Covid death % by age group, sex and presence of co-morbidities",
+       x = "",
+       y = "",
+       caption = "Souce: CDC") +
+  geom_text(aes(label = death_percentage*100), size = 3, hjust = -0.1) +
+  NULL
+
+ggsave("covid_plot1.png", width = 34, height = 17, units = "cm", dpi = 96)
+
+covid_plot2_data <- covid_data %>%
+  mutate_if(is.character, list(~na_if(., "Unknown"))) %>%
+  mutate_if(is.character, list(~na_if(., "Missing"))) %>%
+  mutate(sex = na_if(sex, "Other")) %>%
+  group_by(age_group, sex, icu_yn, death_yn) %>%
+  drop_na(age_group, sex, icu_yn, death_yn) %>%
+  summarise(count = n()) %>%
+  ungroup() %>%
+  group_by(age_group, sex, icu_yn) %>%
+  mutate(subgroup_total = sum(count)) %>%
+  ungroup() %>%
+  filter(death_yn == "Yes") %>%
+  mutate(death_percentage = round(count/subgroup_total, digits = 3),
+         icu_yn = factor(icu_yn, levels = c("Yes", "No"),
+                         labels = c("Admitted to ICU", "No ICU")))
+
+covid_plot2 <- ggplot(covid_plot2_data, aes(x = death_percentage, y = reorder(age_group, age_group))) +
+  geom_col(fill = "#FF9999") +
+  facet_grid(icu_yn ~ sex) +
+  coord_cartesian(xlim = c(0, 0.85), clip = "off") +
+  scale_x_continuous(labels = scales::percent) +
+  theme_set(new) +
+  labs(title = "Covid death % by age group, sex and whether patient was admitted to ICU",
+       x = "",
+       y = "",
+       caption = "Souce: CDC") +
+  geom_text(aes(label = death_percentage*100), size = 3, hjust = -0.1) +
+  NULL
+
+ggsave("covid_plot2.png", width = 34, height = 17, units = "cm", dpi = 96)
+
+knitr::include_graphics(here::here("covid_plot1.png"), error = FALSE)
+
+knitr::include_graphics(here::here("covid_plot2.png"), error = FALSE)
+
+```
+
 
 
 # Challenge 2: Excess rentals in TfL bike sharing
@@ -750,8 +993,6 @@ bike_month_surplus <- ggplot(bike_avg, aes(x = date_month, y = actual_rentals)) 
   ggtitle(label = "Monthly changes in TfL bike rentals", 
           subtitle = "Change in monthly average shown in blue \n and calculated between 2015-2019") 
 
-
-
 ggsave("plot2.png",
        plot = last_plot(),
        scale = 1,
@@ -790,7 +1031,6 @@ bike_avg_week <- bike %>%
          perc_change = excess_rentals / expected_rentals)
 
 
-
 bike_week_deviation <- ggplot(bike_avg_week, aes(x = week, y = perc_change)) +
   geom_rect(xmin=13, xmax=26, ymin=-1, ymax=Inf,fill = "grey",alpha=0.01) + 
   geom_rect(xmin=39, xmax=53, ymin=-1, ymax=Inf,fill = "grey",alpha=0.01) +
@@ -822,8 +1062,6 @@ bike_week_deviation <- ggplot(bike_avg_week, aes(x = week, y = perc_change)) +
        caption = "Source:TfL, London Data Store") +
   ggtitle(label = "Weekly changes in TfL bike rentals",
           subtitle = "% changes from weekly averages \n calculated between 2015 - 2019")
-
-
 
 ggsave("plot3.png",
        plot = last_plot(),
@@ -858,9 +1096,9 @@ As usual, there is a lot of explanatory text, comments, etc. You do not need the
 
 # Details
 
-- Who did you collaborate with: TYPE NAMES HERE
-- Approximately how much time did you spend on this problem set: ANSWER HERE
-- What, if anything, gave you the most trouble: ANSWER HERE
+- Who did you collaborate with: Leif Beckers, Dung Tran, Salman Abdullah, Andjela Bozinovic, Xiwen Wang
+- Approximately how much time did you spend on this problem set: 15 h
+- What, if anything, gave you the most trouble: getting the graph to look closer to actual picture (re-scaling, etc)
 
 
 **Please seek out help when you need it,** and remember the [15-minute rule](https://mam2021.netlify.app/syllabus/#the-15-minute-rule){target=_blank}. You know enough R (and have enough examples of code from class and your readings) to be able to do this. If you get stuck, ask for help from others, post a question on Slack-- and remember that I am here to help too!  
