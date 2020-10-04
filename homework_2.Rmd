@@ -1,8 +1,10 @@
 ---
-title: "Session 4: Homework 2 - Group 23"
+title: 'Session 4: Homework 2 - Group 23'
 author: "Leif Beckers, Dung Tran, Salman Abdullah, Andjela Bozinovic, Xiwen Wang"
 date: "`r Sys.Date()`"
 output:
+  word_document:
+    toc: yes
   html_document:
     theme: flatly
     highlight: zenburn
@@ -319,7 +321,7 @@ Can we estimate the *population* proportion of Snapchat or Instagram users in 20
 1. Using the CI formula for proportions, please construct 95% CIs for men and women who used either Snapchat or Instagram
 
 ```{r}
-gss_sex <- gss %>%
+gss_new <- gss %>%
   mutate(snap_insta = if_else(snapchat == "Yes", "Yes", if_else(instagrm == "Yes", "Yes", "No", "NA"), "NA")) %>%
   mutate(snap_insta =  na_if(snapchat, "NA"))
 
