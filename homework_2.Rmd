@@ -3,8 +3,6 @@ title: 'Session 4: Homework 2 - Group 23'
 author: "Leif Beckers, Dung Tran, Salman Abdullah, Andjela Bozinovic, Xiwen Wang"
 date: "`r Sys.Date()`"
 output:
-  word_document:
-    toc: yes
   html_document:
     theme: flatly
     highlight: zenburn
@@ -12,6 +10,8 @@ output:
     toc: yes
     toc_float: yes
     code_folding: show
+  word_document:
+    toc: yes
 ---
 
 
@@ -407,7 +407,7 @@ CI_twitter_by_edu
 
 
 ```
-The confidence intervals between the less-educated and more-educated groups do not overlap. In fact, the data suggest that we can be 95% confident that those with bachelor degrees or above are more likely to use twitter than those without.
+The confidence intervals between the less-educated and more-educated groups do not overlap. In fact, the data suggest that that those with bachelor degrees or above are more likely to use twitter than those without.
 
 ## Email usage
 
@@ -708,7 +708,7 @@ compiled_countries_data %>%
   geom_smooth() +
   labs(title = "Relationship between fertility rate and income varies by region",
        subtitle = "North America excluded due to insufficient samples",
-       x = "GDP Per Capita",
+       x = "GDP Per Capita (in USD)",
        y = "Fertility rate (Births per woman)")
 ```
 At lower income levels, there is a consistent trend that the higher the average income, the lower the fertility rate (negative correlation). Conversely, at mid-income levels, birth rates actually increase with GDP per capita for most countries (positive correlation), although the degree by which it increases varies greatly by region. Finally, at higher income levels, the correlation becomes negative again.
