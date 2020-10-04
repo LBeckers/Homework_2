@@ -82,9 +82,6 @@ tidyweather <- weather %>%
 Let us plot the data using a time-series scatter plot, and add a trendline. To do that, we first need to create a new variable called `date` in order to ensure that the `delta` values are plot chronologically. 
 
 
-> In the following chunk of code, I used the `eval=FALSE` argument, which does not run a chunk of code; I did so that you can knit the document before tidying the data and creating a new dataframe `tidyweather`. When you actually want to run this code and knit your document, you must delete `eval=FALSE`, **not just here but in all chunks were `eval=FALSE` appears.**
-
-
 ```{r scatter_plot}
 
 tidyweather <- tidyweather %>%
@@ -257,8 +254,6 @@ percentile_ci
 
 
 ```
-
-> What is the data showing us? Please type your answer after (and outside!) this blockquote. You have to explain what you have done, and the interpretation of the result. One paragraph max, please!
 
 In the above sections, the confidence interval has been calculated using 2 different method: using CI formula and using bootstrap. In the CI formula method, each year's annual delta has been calculated by taking the arithmetic mean of all months' delta in that corresponding year. This yields a total of 9 observations from 2011 until 2019. Then, the standard deviation of the data and standard error of the mean are calculated, and then combined with a t-statistic approximation to obtain a 95% confidence interval for the average annual delta. Meanwhile, in the bootstrap method, repeated samples are taken from the data to provide an estimate of the average annual delta. Using the 1st method, we are 95% confident that the actual average is between 0.816 - 1.13. Using the 2nd method, the confidence interval is narrower: 0.855 - 1.1, see the first plot below. Here, the bootstrap distribution is quite close to normal distribution, as is demonstrated in the second plot below, so the 2 confidence intervals should be similar to some extent.
 
@@ -1109,7 +1104,7 @@ As usual, there is a lot of explanatory text, comments, etc. You do not need the
 # Details
 
 - Who did you collaborate with: Leif Beckers, Dung Tran, Salman Abdullah, Andjela Bozinovic, Xiwen Wang
-- Approximately how much time did you spend on this problem set: 15 h
+- Approximately how much time did you spend on this problem set: 18 h
 - What, if anything, gave you the most trouble: getting the graph to look closer to actual picture (re-scaling, etc)
 
 
