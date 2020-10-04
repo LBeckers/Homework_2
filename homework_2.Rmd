@@ -256,6 +256,8 @@ percentile_ci
 
 > What is the data showing us? Please type your answer after (and outside!) this blockquote. You have to explain what you have done, and the interpretation of the result. One paragraph max, please!
 
+In the above sections, the confidence interval has been calculated using 2 different method: using CI formula and using bootstrap. In the CI formula method, each year's annual delta has been calculated by taking the arithmetic mean of all months' delta in that corresponding year. This yields a total of 9 observations from 2011 until 2019. Then, the standard deviation of the data and standard error of the mean are calculated, and then combined with a t-statistic approximation to obtain a 95% confidence interval for the average annual delta. Meanwhile, in the bootstrap method, repeated samples are taken from the data to provide an estimate of the average annual delta. Using the 1st method, we are 95% confident that the actual average is between 0.816 - 1.13. Using the 2nd method, the confidence interval is narrower: 0.855 - 1.1. Here, the bootstrap distribution is quite close to normal distribution, as is demonstrated in the second plot below, so the 2 confidence intervals should be similar to some extent.
+
 ```{r, visualise_bootstrap_and_formula}
 
 # Visualise bootstrap CI vs formula CI
@@ -321,12 +323,11 @@ Can we estimate the *population* proportion of Snapchat or Instagram users in 20
 ```{r}
 gss_sex <- gss %>%
   mutate(snap_insta = if_else(snapchat == "Yes", "Yes", if_else(instagrm == "Yes", "Yes", "No", "NA"), "NA")) %>%
-  mutate(snap_insta =  na_if(snapchat, "NA"))
-
+  mutate(snap_insta =  na_if(snapchat, "NA"))  # Assign NA values (and not just "NA" characters) to missing data
 
 Insta_snap <- gss_new %>%
   group_by(snap_insta) %>%
-  filter(!is.na(snap_insta)) %>%
+  filter(!is.na(snap_insta)) %>% # NAs excluded
   summarise(count = n()) %>%
   mutate(usage_proportion = count/sum(count)) %>%
   filter(snap_insta == "Yes")
@@ -341,8 +342,9 @@ CI_by_sex <- gss_new %>%
          margin_of_error = t_critical * se_proportion,
          proportion_low = usage_proportion - margin_of_error,
          proportion_high = usage_proportion + margin_of_error) %>%
+# Shorten data frame to only include relevant information
   filter(snap_insta == "Yes") %>%
-  select(sex, usage_proportion, proportion_low, proportion_high)
+  select(sex, usage_proportion, proportion_low, proportion_high) 
 
 gss_new
 
@@ -371,7 +373,7 @@ gss$degree <- factor(gss$degree, levels = c("Lt high school", "High school", "Ju
 
 gss_edu <- gss %>%
   mutate(bachelor_graduate = if_else(degree %in% c("Bachelor", "Graduate"), "Yes", "No", "NA"),
-         bachelor_graduate = na_if(bachelor_graduate, "NA"))
+         bachelor_graduate = na_if(bachelor_graduate, "NA")) # Change entries in bachelor_graduate columns with "NA" characters into NA values
 
 twitter_usage <- gss_edu %>% 
   filter(bachelor_graduate == "Yes",
@@ -391,7 +393,7 @@ CI_twitter_by_edu <- gss_edu %>%
          margin_of_error = t_critical * se_proportion,
          proportion_low = usage_proportion - margin_of_error,
          proportion_high = usage_proportion + margin_of_error) %>% 
-  filter(twitter == "Yes")
+  filter(twitter == "Yes") # As these are proportions, "No" is by definition, 1 - "Yes". Thus, only one is needed for the comparison.
 
 gss_edu
 twitter_usage
@@ -399,20 +401,20 @@ CI_twitter_by_edu
 
 
 ```
-The confidence intervals between the less-educated and more-educated groups do not overlap. In fact, the data suggest that we can be 95% confident that those with bachelor degrees or above are more likely to to use twitter than those without.
+The confidence intervals between the less-educated and more-educated groups do not overlap. In fact, the data suggest that we can be 95% confident that those with bachelor degrees or above are more likely to use twitter than those without.
 
 ## Email usage
 
 Can we estimate the *population* parameter on time spent on email weekly?
 
 1. Create a new variable called `email` that combines `emailhr` and `emailmin` to reports the number of minutes the respondents spend on email weekly.
-1. Visualise the distribution of this new variable. Find the mean and the median number of minutes respondents spend on email weekly. Is the mean or the median a better measure of the typical amoung of time Americans spend on email weekly? Why?
+1. Visualise the distribution of this new variable. Find the mean and the median number of minutes respondents spend on email weekly. Is the mean or the median a better measure of the typical among of time Americans spend on email weekly? Why?
 1. Using the `infer` package, calculate a 95% bootstrap confidence interval for the mean amount of time Americans spend on email weekly. Interpret this interval in context of the data, reporting its endpoints in “humanized” units (e.g. instead of 108 minutes, report 1 hr and 8 minutes). If you get a result that seems a bit odd, discuss why you think this might be the case.
 1. Would you expect a 99% confidence interval to be wider or narrower than the interval you calculated above? Explain your reasoning.
 
 ```{r}
 gss_email <- gss %>% 
-  mutate(email = as.numeric(emailhr) * 60 + as.numeric(emailmin)) 
+  mutate(email = as.numeric(emailhr) * 60 + as.numeric(emailmin)) # Combine hours and minutes into minutes-only format
 
 ggplot(gss_email, aes(x = email)) +
   geom_density() +
@@ -449,6 +451,7 @@ boot_email <- gss_email %>%
 #Calculate bootstrap method confidence intervals
 email_CI_95 <- boot_email %>%
   get_confidence_interval(level = 0.95, type = "percentile") %>% 
+# Change from minutes-only format to display Hours and minutes in the same entry
   mutate(Lower_hour = floor(lower_ci/60),
          Lower_minutes = round((lower_ci - 60 * Lower_hour), digits = 0),
          Upper_hour = floor(upper_ci/60),
@@ -460,7 +463,7 @@ email_CI_95 <- boot_email %>%
 email_CI_95
 
 ```
-We are 95% certain that i the mean weekly hours that Americans spent on email is between 6 hr 25 minutes - 7 hr 33 minutes.
+We are 95% certain that the mean weekly hours that Americans spent on email is between 6 hr 25 minutes - 7 hr 33 minutes.
 
 ```{r}
 
@@ -667,11 +670,12 @@ hiv_life <- compiled_countries_data %>%
   group_by(Year, region) %>%
   drop_na(HIV_rate_per_100, life_expectancy) %>%
   summarise(correlation = cor(HIV_rate_per_100, life_expectancy)) %>%
-  filter(region != c("North America", "Middle East & North Africa"))
+  filter(region != c("North America", "Middle East & North Africa")) # Graph will be faceted by region, so these 2 regions should be excluded because there are not enough samples.
 
+# Plot correlation coefficient - time graph instead of HIV - life expectancy graph. This allows further analysis of how the relationship change over time.
 ggplot(hiv_life, aes(x = Year, y = correlation)) +
   geom_point() +
-  facet_wrap(~region, scales = "free_x") +
+  facet_wrap(~region, scales = "free_x") + # faceting by region allows data to be grouped by countries with more similar socio-economic conditions.
   geom_smooth() + 
   theme_bw() +
   labs(title = "Correlation of HIV Prevalence and Life Expectancy over Time",
@@ -680,10 +684,9 @@ ggplot(hiv_life, aes(x = Year, y = correlation)) +
        x = "Year")
 
 ```
+In most regions, there has been a negative correlation between HIV prevalence and life expectancy over time. This suggests that the higher the HIV rate, the lower the life expectancy. However, this seems to be the case only for less developed regions. In Europe & Central Asia where living conditions are significantly higher, the correlation coefficient between 1990-2000 is actually positive. Since this is counter-intuitive, the only reasonable explanation would be that as living conditions increase, HIV rate becomes much less relevant in deciding life expectancy. This also explains why Sub-Saharan Africa and South Asia, where economic development was high between 2005-2011, experienced significant decreases in the absolute value of correlation coefficients.
 
-In most region, there has been a negative correlation between HIV prevalence and life expectancy over time. This suggests that the higher the HIV rate, the lower the life expectancy. However, this seems to be the case only for less developed regions. In Europe & Central Asia where living conditions are significantly higher, the correlation coefficient between 1990-2000 is actually positive. Since this is counter-intuitive, the only reasonable explanation would be that as living conditions increase, HIV rate becomes much less relevant in deciding life expectancy. This also explains why Sub-Saharan Africa and South Asia, where economic development was high between 2005-2011, experienced significant decreases in the absolute value of correlation coefficients.
-
-## What is the relationship between fertility rate and GDP per capita? Generate a scatterplot with a smoothing line to report your results. You may find facetting by region useful
+## What is the relationship between fertility rate and GDP per capita? Generate a scatterplot with a smoothing line to report your results. You may find faceting by region useful
 ```{r}
 compiled_countries_data %>%
   filter(region != "North America") %>%
@@ -697,7 +700,7 @@ compiled_countries_data %>%
        x = "GDP Per Capita",
        y = "Fertility rate (Births per woman)")
 ```
-At lower income levels, there is a consistent trend that the higher the average income, the lower the fertility rate. Conversely, at mid-income levels, birth rates actually increase with GDP per capita for most countries, although the degree by which it increases varies greatly by region. Finally, at higher income levels, correlation becomes negative again.
+At lower income levels, there is a consistent trend that the higher the average income, the lower the fertility rate (negative correlation). Conversely, at mid-income levels, birth rates actually increase with GDP per capita for most countries (positive correlation), although the degree by which it increases varies greatly by region. Finally, at higher income levels, the correlation becomes negative again.
 
 ## Which regions have the most observations with missing HIV data? Generate a bar chart (`geom_col()`), in descending order.
 
@@ -706,6 +709,7 @@ HIV_missing_data <- compiled_countries_data %>%
   group_by(region) %>%
   summarise(missing_entries = sum(is.na(HIV_rate_per_100)))
 
+# Compare by number of missing entries
 ggplot(HIV_missing_data, aes(x = missing_entries, y = reorder(region, missing_entries))) +
   geom_col() +
   theme_economist() +
@@ -721,6 +725,7 @@ HIV_missing_data_2 <- compiled_countries_data %>%
             count = n()) %>%
   mutate(percentage_missing = missing_entries/count)
 
+# Compare by percentage of missing entries
 ggplot(HIV_missing_data_2, aes(x = percentage_missing, y = reorder(region, percentage_missing))) +
   geom_col() +
   theme_economist() +
@@ -750,6 +755,7 @@ ggplot(mortality_plot, aes(x = Year, y = mean_mortality_rate)) +
        x = "") +
     NULL
 
+# Collect data for best performing countries
 mortality_head <- compiled_countries_data %>%
   filter(Year == c(1990, 2011)) %>%
   select(region, country, Year, mortality_rate_under5) %>%
@@ -757,10 +763,12 @@ mortality_head <- compiled_countries_data %>%
   rename(start = 3,
          end = 4) %>%
   mutate(change = end - start) %>%
+  drop_na(change) %>%
   arrange(region, change, na.rm = TRUE) %>%
   group_by(region) %>%
   slice_head(n=5)
 
+# Collect data for worst performing countries
 mortality_tail <- compiled_countries_data %>%
   filter(Year == c(1990, 2011)) %>%
   select(region, country, Year, mortality_rate_under5) %>%
@@ -773,11 +781,11 @@ mortality_tail <- compiled_countries_data %>%
   group_by(region) %>%
   slice_tail(n=5)
 
+# Combine the 2 sets of data above
 mortality_top_and_bottom <- bind_rows(mortality_head, mortality_tail) %>%
   arrange(region, change) %>%
   select(region, country, change) %>%
-  rename(change_in_mortality_rate = change) %>%
-  drop_na()
+  rename(change_in_mortality_rate = change)
   
 mortality_top_and_bottom
 ```
@@ -837,11 +845,12 @@ Besides the graphs, make sure your code is easy to read and understand-- imagine
 ```{r}
 
 covid_plot1_data <- covid_data %>%
+#remove all observations where relevant data are missing
   mutate_if(is.character, list(~na_if(., "Unknown"))) %>%
   mutate_if(is.character, list(~na_if(., "Missing"))) %>%
   mutate(sex = na_if(sex, "Other")) %>%
-  group_by(age_group, sex, medcond_yn, death_yn) %>%
   drop_na(age_group, sex, medcond_yn, death_yn) %>%
+  group_by(age_group, sex, medcond_yn, death_yn) %>%
   summarise(count = n()) %>%
   ungroup() %>%
   group_by(age_group, sex, medcond_yn) %>%
@@ -850,11 +859,11 @@ covid_plot1_data <- covid_data %>%
   filter(death_yn == "Yes") %>%
   mutate(death_percentage = round(count/subgroup_total, digits = 3),
          medcond_yn = factor(medcond_yn, levels = c("Yes", "No"),
-                             labels = c("With comorbidities", "Without comorbidities")))
+                             labels = c("With comorbidities", "Without comorbidities"))) # Rename facet labels
 
 new <- theme_set(theme_bw())
 theme_replace(plot.tag.position = c(0.95,0.01),
-        plot.tag = element_text(size = 7))
+        plot.tag = element_text(size = 9)) # Custom format tag position and font size for "Source: CDC"
 
 covid_plot1 <- ggplot(covid_plot1_data, aes(x = death_percentage, y = reorder(age_group, age_group))) +
   geom_col(fill = "#6666CC") +
@@ -869,14 +878,19 @@ covid_plot1 <- ggplot(covid_plot1_data, aes(x = death_percentage, y = reorder(ag
   geom_text(aes(label = death_percentage*100), size = 3, hjust = -0.1) +
   NULL
 
-ggsave("covid_plot1.png", width = 34, height = 17, units = "cm", dpi = 96)
+ggsave("covid_plot1.png", width = 33.87, height = 18.15, units = "cm", dpi = 96) # ggsave to resize graph
+
+new <- theme_set(theme_bw())
+theme_replace(plot.tag.position = c(0.95,0.01),
+        plot.tag = element_text(size = 9)) # Repeat custom format for 2nd graph
 
 covid_plot2_data <- covid_data %>%
+#remove all observations where relevant data are missing
   mutate_if(is.character, list(~na_if(., "Unknown"))) %>%
   mutate_if(is.character, list(~na_if(., "Missing"))) %>%
   mutate(sex = na_if(sex, "Other")) %>%
-  group_by(age_group, sex, icu_yn, death_yn) %>%
   drop_na(age_group, sex, icu_yn, death_yn) %>%
+  group_by(age_group, sex, icu_yn, death_yn) %>%
   summarise(count = n()) %>%
   ungroup() %>%
   group_by(age_group, sex, icu_yn) %>%
@@ -885,7 +899,7 @@ covid_plot2_data <- covid_data %>%
   filter(death_yn == "Yes") %>%
   mutate(death_percentage = round(count/subgroup_total, digits = 3),
          icu_yn = factor(icu_yn, levels = c("Yes", "No"),
-                         labels = c("Admitted to ICU", "No ICU")))
+                         labels = c("Admitted to ICU", "No ICU"))) # Rename facet labels
 
 covid_plot2 <- ggplot(covid_plot2_data, aes(x = death_percentage, y = reorder(age_group, age_group))) +
   geom_col(fill = "#FF9999") +
@@ -900,8 +914,9 @@ covid_plot2 <- ggplot(covid_plot2_data, aes(x = death_percentage, y = reorder(ag
   geom_text(aes(label = death_percentage*100), size = 3, hjust = -0.1) +
   NULL
 
-ggsave("covid_plot2.png", width = 34, height = 17, units = "cm", dpi = 96)
+ggsave("covid_plot2.png", width = 33.87, height = 18.15, units = "cm", dpi = 96) # ggsave to resize graph
 
+# display saved graphs
 knitr::include_graphics(here::here("covid_plot1.png"), error = FALSE)
 
 knitr::include_graphics(here::here("covid_plot2.png"), error = FALSE)
